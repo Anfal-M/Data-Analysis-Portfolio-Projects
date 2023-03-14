@@ -51,3 +51,75 @@ ADD City NVARCHAR(255);
 
 UPDATE NashvilleHousing
 SET City = SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress) +1, LEN(PropertyAddress))
+
+--OwnerAddress
+
+ALTER TABLE NashvilleHousing
+ADD OwnerAddress2 NVARCHAR(255);
+
+UPDATE NashvilleHousing
+SET OwnerAddress2 = PARSENAME(REPLACE(OwnerAddress, ',', '.'), 3)
+
+ALTER TABLE NashvilleHousing
+ADD OwnerCity NVARCHAR(255);
+
+UPDATE NashvilleHousing
+SET OwnerCity = PARSENAME(REPLACE(OwnerAddress, ',', '.'), 2)
+
+ALTER TABLE NashvilleHousing
+ADD OwnerState NVARCHAR(255);
+
+UPDATE NashvilleHousing
+SET OwnerState = PARSENAME(REPLACE(OwnerAddress, ',', '.'), 1)
+
+SELECT DISTINCT(SoldAsVacant), COUNT(SoldAsVacant)
+FROM PortfolioProject..NashvilleHousing
+GROUP BY SoldAsVacant
+ORDER BY 2
+------------------------------
+
+--CHANGE 'Y' to 'Yes' and 'N' to 'No'
+UPDATE NashvilleHousing
+SET SoldAsVacant=
+	CASE WHEN SoldAsVacant = 'Y' THEN 'Yes'
+	WHEN SoldAsVacant = 'N' THEN 'No'
+	ELSE SoldAsVacant
+	END
+---------------------------------
+
+--Remove duplicates
+
+WITH RowNumCTE AS(
+SELECT *, ROW_NUMBER() OVER(
+	PARTITION BY 
+	ParcelID, 
+	PropertyAddress, 
+	SalePrice, 
+	SaleDate, 
+	LegalReference
+	ORDER BY UniqueID
+	) row_num
+
+FROM PortfolioProject..NashvilleHousing
+--ORDER BY ParcelID
+)
+
+SELECT *
+FROM RowNumCTE
+WHERE row_num > 1
+ORDER BY PropertyAddress
+
+DELETE
+FROM RowNumCTE
+WHERE row_num > 1
+-----------------------------------
+
+--Delete unused columns
+SELECT *
+FROM PortfolioProject..NashvilleHousing
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+DROP COLUMN OwnerAddress, TaxDistrict, PropertyAddress
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+DROP COLUMN SaleDate
